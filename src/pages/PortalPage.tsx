@@ -7,11 +7,14 @@ interface PortalPageProps {
 }
 
 export const PortalPage: React.FC<PortalPageProps> = ({ onNavigate }) => {
-  const { switchRole } = useAuth();
+  const { user } = useAuth();
 
   const handleSelectCitizen = () => {
-    switchRole('citizen');
-    onNavigate('citizen_dashboard');
+    if (user) {
+      onNavigate('citizen_dashboard');
+    } else {
+      onNavigate('citizen_login');
+    }
   };
 
   const handleSelectAdmin = () => {

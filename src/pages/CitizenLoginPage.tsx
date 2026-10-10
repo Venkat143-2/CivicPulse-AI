@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Lock, Eye, EyeOff, User, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, User, ArrowRight, AlertCircle, Database } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
@@ -8,15 +8,15 @@ interface CitizenLoginPageProps {
 }
 
 export const CitizenLoginPage: React.FC<CitizenLoginPageProps> = ({ onNavigate }) => {
-  const { loginCitizen, switchRole } = useAuth();
-  const { success, error } = useToast();
+  const { loginCitizen, tablesReady } = useAuth();
+  const { success, error, info } = useToast();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !password) {
       error('Missing input', 'Please enter your email and password.');
@@ -24,17 +24,22 @@ export const CitizenLoginPage: React.FC<CitizenLoginPageProps> = ({ onNavigate }
     }
 
     setLoading(true);
-    setTimeout(() => {
-      loginCitizen(email.trim(), email.split('@')[0]);
-      success('Welcome back', 'Successfully logged into Citizen Portal.');
-      setLoading(false);
-      onNavigate('citizen_dashboard');
-    }, 400);
-  };
+    const result = await loginCitizen(email.trim(), password);
+    setLoading(false);
 
-  const handleDemoLogin = () => {
-    switchRole('citizen');
-    success('Demo Citizen Active', 'Logged in as Aarav Sharma (citizen-demo-1).');
+    if (!result.success) {
+      if (!tablesReady) {
+        error(
+          'Database Setup Required',
+          'Database tables are pending migration in Supabase. Please run the SQL migration in your Supabase SQL Editor first.'
+        );
+      } else {
+        error('Login Failed', result.error || 'Invalid email or password.');
+      }
+      return;
+    }
+
+    success('Welcome back', 'Successfully authenticated via Supabase.');
     onNavigate('citizen_dashboard');
   };
 
@@ -46,8 +51,20 @@ export const CitizenLoginPage: React.FC<CitizenLoginPageProps> = ({ onNavigate }
             <User className="w-5 h-5" />
           </div>
           <h2 className="text-2xl font-black text-white">Citizen Sign In</h2>
-          <p className="text-xs text-slate-400">Access your reported complaints and status history</p>
+          <p className="text-xs text-slate-400">Secure Supabase Authentication for civic issue reporting</p>
         </div>
+
+        {!tablesReady && (
+          <div className="p-3.5 rounded-2xl bg-amber-950/40 border border-amber-800/60 text-xs text-amber-200 space-y-1.5">
+            <div className="font-bold flex items-center gap-1.5 text-amber-300">
+              <Database className="w-4 h-4" />
+              <span>Supabase Migration Pending</span>
+            </div>
+            <p className="text-[11px] text-amber-200/90 leading-relaxed">
+              Database tables are not yet created in your Supabase project. Run the provided SQL migration in your Supabase SQL Editor to enable user accounts and persistence.
+            </p>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -59,7 +76,7 @@ export const CitizenLoginPage: React.FC<CitizenLoginPageProps> = ({ onNavigate }
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="aarav.sharma@gmail.com"
+                placeholder="citizen@example.com"
                 className="w-full bg-slate-800/80 border border-slate-700 rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-teal-500 transition"
               />
             </div>
@@ -101,29 +118,28 @@ export const CitizenLoginPage: React.FC<CitizenLoginPageProps> = ({ onNavigate }
             disabled={loading}
             className="w-full py-3 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 transition disabled:opacity-50 shadow-md shadow-teal-500/20"
           >
-            <span>{loading ? 'Authenticating...' : 'Sign In as Citizen'}</span>
+            <span>{loading ? 'Authenticating via Supabase...' : 'Sign In as Citizen'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
 
-        {/* Quick Demo Citizen Login */}
         <div className="pt-2 border-t border-slate-800 space-y-3">
-          <button
-            type="button"
-            onClick={handleDemoLogin}
-            className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 font-semibold text-xs border border-slate-700/80 flex items-center justify-center gap-2 transition"
-          >
-            <ShieldCheck className="w-4 h-4 text-teal-400" />
-            <span>Use Verified Citizen Demo Account</span>
-          </button>
-
           <div className="text-center text-xs text-slate-400">
-            Don't have an account?{' '}
+            Don't have a registered account?{' '}
             <button
               onClick={() => onNavigate('citizen_register')}
               className="text-teal-400 hover:text-teal-300 font-semibold underline"
             >
               Register here
+            </button>
+          </div>
+
+          <div className="text-center">
+            <button
+              onClick={() => onNavigate('portal')}
+              className="text-xs text-slate-400 hover:text-white transition"
+            >
+              &larr; Return to Portal Selector
             </button>
           </div>
         </div>

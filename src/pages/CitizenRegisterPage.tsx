@@ -8,8 +8,8 @@ interface CitizenRegisterPageProps {
 }
 
 export const CitizenRegisterPage: React.FC<CitizenRegisterPageProps> = ({ onNavigate }) => {
-  const { loginCitizen } = useAuth();
-  const { success, error } = useToast();
+  const { registerCitizen } = useAuth();
+  const { success, error, info } = useToast();
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -18,8 +18,9 @@ export const CitizenRegisterPage: React.FC<CitizenRegisterPageProps> = ({ onNavi
   const [showPassword, setShowPassword] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [emailVerificationSent, setEmailVerificationSent] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName.trim() || !email.trim() || !password) {
       error('Missing details', 'Please fill in all required fields.');
@@ -31,12 +32,21 @@ export const CitizenRegisterPage: React.FC<CitizenRegisterPageProps> = ({ onNavi
     }
 
     setSubmitting(true);
-    setTimeout(() => {
-      loginCitizen(email.trim(), fullName.trim(), phone.trim());
-      success('Account created', 'Welcome to CivicPulse AI! Please verify your phone number.');
-      setSubmitting(false);
-      onNavigate('citizen_verify_mobile');
-    }, 600);
+    const result = await registerCitizen(email.trim(), password, fullName.trim(), phone.trim());
+    setSubmitting(false);
+
+    if (!result.success) {
+      error('Registration Failed', result.error || 'Could not complete registration.');
+      return;
+    }
+
+    if (result.needsEmailVerification) {
+      setEmailVerificationSent(true);
+      info('Confirmation Email Sent', 'Please check your email to activate your account.');
+    } else {
+      success('Account Created', 'Welcome to CivicPulse AI!');
+      onNavigate('citizen_dashboard');
+    }
   };
 
   return (

@@ -22,7 +22,7 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ currentPage, onNavigate }) => {
-  const { user, isAdmin, isCitizen, logout, switchRole } = useAuth();
+  const { user, isAdmin, isCitizen, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showDbModal, setShowDbModal] = useState(false);
 
@@ -158,21 +158,15 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage, onNavigate }) => {
 
                 <div className="flex items-center gap-1">
                   <button
-                    onClick={() => switchRole(isAdmin ? 'citizen' : 'admin')}
-                    className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-[11px] font-medium text-slate-300 rounded-md transition"
-                    title={`Switch to ${isAdmin ? 'Citizen' : 'Admin'} view`}
-                  >
-                    Switch to {isAdmin ? 'Citizen' : 'Admin'}
-                  </button>
-                  <button
                     onClick={() => {
                       logout();
                       handleNav('portal');
                     }}
-                    className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-md transition"
+                    className="px-2 py-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-md transition flex items-center gap-1.5 text-xs"
                     title="Sign Out"
                   >
                     <LogOut className="w-3.5 h-3.5" />
+                    <span className="text-[11px]">Sign Out</span>
                   </button>
                 </div>
               </div>
@@ -272,19 +266,14 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage, onNavigate }) => {
                   </div>
                   <div className="flex gap-2">
                     <button
-                      onClick={() => switchRole(isAdmin ? 'citizen' : 'admin')}
-                      className="px-2.5 py-1 text-xs bg-slate-800 text-teal-300 rounded font-medium"
-                    >
-                      To {isAdmin ? 'Citizen' : 'Admin'}
-                    </button>
-                    <button
                       onClick={() => {
                         logout();
                         handleNav('portal');
                       }}
-                      className="p-1 text-rose-400"
+                      className="px-2.5 py-1 text-xs bg-slate-800 text-rose-400 rounded font-medium flex items-center gap-1"
                     >
-                      <LogOut className="w-4 h-4" />
+                      <LogOut className="w-3.5 h-3.5" />
+                      <span>Sign Out</span>
                     </button>
                   </div>
                 </div>

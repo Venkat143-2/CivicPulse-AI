@@ -92,6 +92,15 @@ export interface Complaint {
   updatedAt: string;
   resolvedAt?: string;
   updates: ComplaintUpdate[];
+  internalNotes?: Array<{
+    id: string;
+    complaintId?: string;
+    authorName?: string;
+    author_name?: string;
+    note: string;
+    createdAt?: string;
+    created_at?: string;
+  }>;
 }
 
 export interface KPIStats {

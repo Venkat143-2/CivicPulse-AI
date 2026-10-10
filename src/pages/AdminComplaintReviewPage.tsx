@@ -262,14 +262,26 @@ export const AdminComplaintReviewPage: React.FC<AdminComplaintReviewPageProps> =
                         <strong className="text-slate-400">Public Note:</strong> {u.publicNote}
                       </p>
                     )}
-                    {u.internalNote && (
-                      <p className="text-xs text-amber-300 pt-1 flex items-center gap-1">
-                        <Lock className="w-3 h-3 text-amber-400 shrink-0" />
-                        <span><strong className="text-amber-400">Internal Admin Note:</strong> {u.internalNote}</span>
-                      </p>
-                    )}
                   </div>
                 ))}
+
+                {complaint.internalNotes && complaint.internalNotes.length > 0 && (
+                  <div className="pt-3 border-t border-slate-800/80 space-y-2">
+                    <div className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                      <Lock className="w-3.5 h-3.5" />
+                      <span>Confidential Internal Notes ({complaint.internalNotes.length})</span>
+                    </div>
+                    {complaint.internalNotes.map((n, idx) => (
+                      <div key={n.id || idx} className="p-3 rounded-2xl bg-amber-950/20 border border-amber-900/40 text-xs text-amber-200 space-y-1">
+                        <div className="flex items-center justify-between text-[10px] text-amber-400/80">
+                          <span className="font-semibold">By: {n.author_name || n.authorName || 'Municipal Officer'}</span>
+                          <span>{new Date(n.created_at || n.createdAt || '').toLocaleString()}</span>
+                        </div>
+                        <p className="leading-relaxed">{n.note}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>

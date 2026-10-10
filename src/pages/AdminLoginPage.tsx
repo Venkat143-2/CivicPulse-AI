@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Shield, Lock, Mail, ArrowRight, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import { Shield, Lock, Mail, ArrowRight, ShieldAlert, Database, Info, Copy, Check } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
@@ -8,33 +8,51 @@ interface AdminLoginPageProps {
 }
 
 export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onNavigate }) => {
-  const { loginAdmin, switchRole } = useAuth();
-  const { success, error } = useToast();
+  const { loginAdmin, tablesReady } = useAuth();
+  const { success, error, info } = useToast();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
+    if (!email.trim() || !password) {
       error('Credentials required', 'Please provide municipal staff email and access key.');
       return;
     }
 
     setLoading(true);
-    setTimeout(() => {
-      loginAdmin(email, 'Executive Engineer');
-      success('Authorized Access', 'Logged in to Municipal Administration Portal.');
-      setLoading(false);
-      onNavigate('admin_dashboard');
-    }, 400);
+    const result = await loginAdmin(email.trim(), password);
+    setLoading(false);
+
+    if (!result.success) {
+      if (!tablesReady) {
+        error(
+          'Database Setup Required',
+          'Database tables have not been created in Supabase yet. Please run the SQL migration in your Supabase dashboard first.'
+        );
+      } else {
+        error('Authorization Denied', result.error || 'Invalid credentials or non-admin account.');
+      }
+      return;
+    }
+
+    success('Authorized Access', 'Authenticated as verified Municipal Administrator.');
+    onNavigate('admin_dashboard');
   };
 
-  const handleDemoAdminLogin = () => {
-    switchRole('admin');
-    success('Municipal Official Active', 'Signed in as Priya Raman (Executive Engineer).');
-    onNavigate('admin_dashboard');
+  const sqlAdminCmd = `-- Promote any user to Municipal Admin in Supabase SQL Editor:
+UPDATE public.profiles
+SET role = 'admin'
+WHERE id = (SELECT id FROM auth.users WHERE email = 'your-email@example.com');`;
+
+  const copySqlCmd = () => {
+    navigator.clipboard.writeText(sqlAdminCmd);
+    setCopied(true);
+    info('Copied', 'SQL command copied to clipboard.');
+    setTimeout(() => setCopied(false), 2500);
   };
 
   return (
@@ -45,18 +63,29 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onNavigate }) =>
             <Shield className="w-5 h-5" />
           </div>
           <h2 className="text-2xl font-black text-white">Municipal Authority Login</h2>
-          <p className="text-xs text-slate-400">Restricted portal for municipal engineers and ward supervisors</p>
+          <p className="text-xs text-slate-400">Strictly verified administrative portal for municipal officials</p>
         </div>
+
+        {!tablesReady && (
+          <div className="p-3.5 rounded-2xl bg-amber-950/40 border border-amber-800/60 text-xs text-amber-200 space-y-1.5">
+            <div className="font-bold flex items-center gap-1.5 text-amber-300">
+              <Database className="w-4 h-4" />
+              <span>Supabase Schema Migration Required</span>
+            </div>
+            <p className="text-[11px] text-amber-200/90 leading-relaxed">
+              Database tables are not yet created in your Supabase project. You must run the SQL migration script in your Supabase SQL Editor.
+            </p>
+          </div>
+        )}
 
         {/* Security Alert notice */}
         <div className="p-3.5 rounded-2xl bg-indigo-950/40 border border-indigo-800/60 text-xs text-indigo-200 space-y-1">
           <div className="font-bold flex items-center gap-1.5 text-indigo-300">
             <ShieldAlert className="w-4 h-4" />
-            <span>Administrative Security Boundary</span>
+            <span>Strict Role Verification</span>
           </div>
           <p className="text-[11px] text-indigo-200/80 leading-relaxed">
-            Public citizen self-registration for administrator role is disabled. Official access is verified by
-            server-side authentication and database Row Level Security.
+            Public citizen self-registration cannot grant the administrator role. Access is verified server-side against the <code className="bg-indigo-950 px-1 py-0.5 rounded text-indigo-300">profiles</code> table.
           </p>
         </div>
 
@@ -70,14 +99,14 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onNavigate }) =>
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="priya.raman@bbmp.gov.in"
+                placeholder="official@city.gov"
                 className="w-full bg-slate-800/80 border border-slate-700 rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Department Access Key</label>
+            <label className="block text-xs font-semibold text-slate-300 mb-1">Department Access Key (Password)</label>
             <div className="relative">
               <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
               <input
@@ -101,16 +130,27 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onNavigate }) =>
           </button>
         </form>
 
-        {/* Quick Demo Admin Button */}
+        {/* Administration Role Granting Guide */}
         <div className="pt-2 border-t border-slate-800 space-y-3">
-          <button
-            type="button"
-            onClick={handleDemoAdminLogin}
-            className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 font-semibold text-xs border border-slate-700/80 flex items-center justify-center gap-2 transition"
-          >
-            <Shield className="w-4 h-4 text-indigo-400" />
-            <span>Use Demo Municipal Official Profile</span>
-          </button>
+          <div className="p-3 bg-slate-950/80 rounded-xl border border-slate-800 text-[11px] space-y-1.5 text-slate-400">
+            <div className="flex items-center justify-between text-slate-300 font-semibold">
+              <span className="flex items-center gap-1.5">
+                <Info className="w-3.5 h-3.5 text-indigo-400" />
+                How to provision an Admin in Supabase:
+              </span>
+              <button
+                type="button"
+                onClick={copySqlCmd}
+                className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
+              >
+                {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                <span>{copied ? 'Copied' : 'Copy'}</span>
+              </button>
+            </div>
+            <p className="text-[10px] text-slate-500">
+              1. Sign up as a user. 2. Run the SQL update in Supabase SQL Editor to set <code className="text-slate-300">role = 'admin'</code>.
+            </p>
+          </div>
 
           <div className="text-center">
             <button

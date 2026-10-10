@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { classifyComplaintAI, submitComplaint } from '../lib/api';
+import { classifyComplaintAI, submitComplaint, uploadComplaintPhotoToStorage } from '../lib/api';
 import { ComplaintCategory, AIClassificationResult } from '../types';
 import { LeafletMap } from '../components/common/LeafletMap';
 import { AIAnalysisCard } from '../components/common/AIAnalysisCard';
@@ -26,7 +26,7 @@ interface NewComplaintPageProps {
 }
 
 export const NewComplaintPage: React.FC<NewComplaintPageProps> = ({ onNavigate }) => {
-  const { user } = useAuth();
+  const { user, tablesReady } = useAuth();
   const { success, error, warning } = useToast();
 
   const [title, setTitle] = useState('');
@@ -74,8 +74,9 @@ export const NewComplaintPage: React.FC<NewComplaintPageProps> = ({ onNavigate }
     }
   };
 
-  // Handle Photo selection
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle Photo selection & Storage upload
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -84,11 +85,16 @@ export const NewComplaintPage: React.FC<NewComplaintPageProps> = ({ onNavigate }
       return;
     }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setPhotoPreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+    setUploadingPhoto(true);
+    try {
+      const url = await uploadComplaintPhotoToStorage(file);
+      setPhotoPreview(url);
+      success('Photo attached', 'Visual evidence uploaded successfully.');
+    } catch (err: any) {
+      error('Upload Notice', err.message || 'Could not upload photo.');
+    } finally {
+      setUploadingPhoto(false);
+    }
   };
 
   const handleLocationSelect = (lat: number, lng: number) => {
@@ -101,6 +107,12 @@ export const NewComplaintPage: React.FC<NewComplaintPageProps> = ({ onNavigate }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!user) {
+      error('Authentication required', 'Please sign in or register as a citizen before lodging a complaint.');
+      onNavigate('citizen_login');
+      return;
+    }
 
     if (!title.trim() || !description.trim() || !address.trim()) {
       error('Required fields', 'Please provide a title, description, and location.');
@@ -115,9 +127,9 @@ export const NewComplaintPage: React.FC<NewComplaintPageProps> = ({ onNavigate }
     setSubmitting(true);
     try {
       const res = await submitComplaint({
-        citizenId: user?.id || 'citizen-demo-1',
-        citizenName: user?.fullName || 'Aarav Sharma',
-        citizenPhone: user?.phone || '+91 9876543210',
+        citizenId: user.id,
+        citizenName: user.fullName || 'Citizen User',
+        citizenPhone: user.phone || undefined,
         title: title.trim(),
         description: description.trim(),
         category: selectedCategory,
@@ -213,6 +225,31 @@ export const NewComplaintPage: React.FC<NewComplaintPageProps> = ({ onNavigate }
             correct municipal department.
           </p>
         </div>
+
+        {!tablesReady && (
+          <div className="p-4 rounded-2xl bg-amber-950/40 border border-amber-800/60 text-xs text-amber-200 space-y-1">
+            <span className="font-bold text-amber-300">Database Setup Notice: </span>
+            <span>
+              Supabase database tables are pending creation. Please run the SQL migration script in your Supabase SQL Editor to enable persistent complaint lodging.
+            </span>
+          </div>
+        )}
+
+        {!user && (
+          <div className="p-4 rounded-2xl bg-slate-900 border border-teal-500/30 text-xs text-slate-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <span className="font-bold text-teal-400">Citizen Account Required: </span>
+              <span>You must be signed in with a verified citizen profile to lodge a civic complaint.</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => onNavigate('citizen_login')}
+              className="px-4 py-2 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs shrink-0 transition"
+            >
+              Sign In to Continue
+            </button>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Group 1: Issue Details */}

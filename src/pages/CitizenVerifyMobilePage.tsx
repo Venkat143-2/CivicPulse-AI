@@ -15,10 +15,10 @@ export const CitizenVerifyMobilePage: React.FC<CitizenVerifyMobilePageProps> = (
   const [phone, setPhone] = useState(user?.phone || '+91 9876543210');
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState('');
-  const [cooldown, setCooldown] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [demoCodeHint, setDemoCodeHint] = useState<string | null>(null);
+  const [cooldown, setCooldown] = useState<number>(0);
+  const [loading, setLoading] = useState<boolean>(false);
   const [smsGatewayConfigured, setSmsGatewayConfigured] = useState(false);
+  const [smsGatewayNotConfigured, setSmsGatewayNotConfigured] = useState(false);
 
   useEffect(() => {
     let timer: any;
@@ -40,13 +40,11 @@ export const CitizenVerifyMobilePage: React.FC<CitizenVerifyMobilePageProps> = (
       const res = await requestMobileOTP(phone);
       setOtpSent(true);
       setCooldown(res.cooldownSeconds || 60);
-      setSmsGatewayConfigured(Boolean(res.smsGatewayConfigured));
-      if (res.demoHelperCode) {
-        setDemoCodeHint(res.demoHelperCode);
-      }
-      info('OTP Dispatched', res.message);
+      setSmsGatewayConfigured(Boolean(res.configured));
+      info('OTP Status', res.message);
     } catch (err: any) {
-      error('OTP Request Failed', err.message);
+      setSmsGatewayNotConfigured(true);
+      error('SMS Gateway Not Configured', 'Live SMS delivery is disabled. Phone verification is optional.');
     } finally {
       setLoading(false);
     }
@@ -96,6 +94,26 @@ export const CitizenVerifyMobilePage: React.FC<CitizenVerifyMobilePageProps> = (
           </p>
         </div>
 
+        {smsGatewayNotConfigured && (
+          <div className="p-4 rounded-2xl bg-amber-950/40 border border-amber-800/60 text-xs text-amber-200 space-y-2">
+            <div className="font-bold flex items-center gap-1.5 text-amber-300">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>SMS Gateway Provider Not Configured</span>
+            </div>
+            <p className="text-[11px] text-amber-200/90 leading-relaxed">
+              SMS OTP verification is an optional external integration requiring SMS provider credentials on the server.
+              In accordance with project rules, OTP delivery is not simulated. You have full access to report and track complaints.
+            </p>
+            <button
+              type="button"
+              onClick={() => onNavigate('citizen_dashboard')}
+              className="mt-1 w-full py-2 bg-amber-900/60 hover:bg-amber-800/80 text-amber-100 rounded-xl font-semibold text-xs transition"
+            >
+              Continue to Citizen Dashboard
+            </button>
+          </div>
+        )}
+
         {!otpSent ? (
           <form onSubmit={handleSendOTP} className="space-y-4">
             <div>
@@ -139,21 +157,6 @@ export const CitizenVerifyMobilePage: React.FC<CitizenVerifyMobilePageProps> = (
                 className="w-full tracking-widest text-center text-lg font-mono font-bold bg-slate-800 border border-slate-700 rounded-xl py-2.5 text-teal-300 placeholder-slate-600 focus:outline-none focus:border-teal-500 transition"
               />
             </div>
-
-            {/* Demo Helper code box if SMS gateway is in demo mode */}
-            {!smsGatewayConfigured && demoCodeHint && (
-              <div className="p-3 bg-teal-950/50 border border-teal-800/60 rounded-xl text-xs text-teal-200">
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-teal-300">Demo Mode Active</span>
-                  <span className="font-mono bg-teal-900/80 px-2 py-0.5 rounded text-white font-bold tracking-wider">
-                    {demoCodeHint}
-                  </span>
-                </div>
-                <p className="text-[10px] text-teal-400 mt-1">
-                  SMS Gateway API key not configured in secrets. Use this active generated code for testing.
-                </p>
-              </div>
-            )}
 
             <button
               type="submit"

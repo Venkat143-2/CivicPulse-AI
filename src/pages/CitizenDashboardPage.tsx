@@ -24,7 +24,7 @@ interface CitizenDashboardPageProps {
 }
 
 export const CitizenDashboardPage: React.FC<CitizenDashboardPageProps> = ({ onNavigate }) => {
-  const { user } = useAuth();
+  const { user, tablesReady } = useAuth();
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [loading, setLoading] = useState(true);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
@@ -32,19 +32,26 @@ export const CitizenDashboardPage: React.FC<CitizenDashboardPageProps> = ({ onNa
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
+    if (!user) {
+      setLoading(false);
+      setComplaints([]);
+      return;
+    }
     loadComplaints();
   }, [user]);
 
   const loadComplaints = async () => {
+    if (!user?.id) return;
     setLoading(true);
     try {
       const res = await fetchComplaints({
-        citizenId: user?.id || 'citizen-demo-1',
+        citizenId: user.id,
         role: 'citizen',
       });
-      setComplaints(res.complaints);
+      setComplaints(res.complaints || []);
     } catch (err) {
       console.error('Failed to load citizen complaints:', err);
+      setComplaints([]);
     } finally {
       setLoading(false);
     }
@@ -87,6 +94,40 @@ export const CitizenDashboardPage: React.FC<CitizenDashboardPageProps> = ({ onNa
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto space-y-8">
+        {!tablesReady && (
+          <div className="p-4 rounded-2xl bg-amber-950/40 border border-amber-800/60 text-xs text-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <span className="font-bold text-amber-300">Database Setup Required: </span>
+              <span className="text-amber-200/90">
+                Supabase database tables are pending migration. Please run the SQL migration script in your Supabase SQL Editor.
+              </span>
+            </div>
+          </div>
+        )}
+
+        {!user && (
+          <div className="p-6 rounded-3xl bg-slate-900 border border-teal-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-base font-bold text-white">Citizen Authentication Required</h3>
+              <p className="text-xs text-slate-400 mt-0.5">Please sign in or register to view and manage your reported civic complaints.</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => onNavigate('citizen_login')}
+                className="px-4 py-2.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs transition"
+              >
+                Sign In as Citizen
+              </button>
+              <button
+                onClick={() => onNavigate('citizen_register')}
+                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs border border-slate-700 transition"
+              >
+                Register
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Top Welcome Banner */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl">
           <div>

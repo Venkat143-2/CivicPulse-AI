@@ -1,22 +1,35 @@
 import React, { useState } from 'react';
 import { Mail, ArrowRight, CheckCircle2, ArrowLeft } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 
 interface CitizenForgotPasswordPageProps {
   onNavigate: (page: string) => void;
 }
 
 export const CitizenForgotPasswordPage: React.FC<CitizenForgotPasswordPageProps> = ({ onNavigate }) => {
+  const { resetPassword } = useAuth();
   const { success, error } = useToast();
   const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) {
       error('Email required', 'Please enter your registered email address.');
       return;
     }
+
+    setLoading(true);
+    const result = await resetPassword(email.trim());
+    setLoading(false);
+
+    if (!result.success) {
+      error('Reset Failed', result.error || 'Could not send recovery link.');
+      return;
+    }
+
     setSubmitted(true);
     success('Reset link dispatched', 'Password reset instructions have been sent to your inbox.');
   };

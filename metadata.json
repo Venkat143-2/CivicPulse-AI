@@ -1,0 +1,6 @@
+{
+  "name": "CivicPulse AI",
+  "description": "Civic complaint management platform with AI-assisted triage, transparent tracking, and municipal workflow tools.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

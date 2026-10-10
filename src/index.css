@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+/* Leaflet Map overrides for dark theme & clean UI */
+.leaflet-container {
+  font-family: inherit;
+  z-index: 10 !important;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 1rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+  padding: 4px;
+}
+
+.custom-div-icon {
+  background: transparent;
+  border: none;
+}
